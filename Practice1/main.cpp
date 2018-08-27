@@ -10,8 +10,9 @@ int main(int argc, char const *argv[])
 	
 	world->print();
 
-	world->randomWorld(10);
+	//world->randomWorld(10);
 	//world->testFunction();
+	world->probabilisticWorld(10);
 
 
 	return 0;

@@ -4,7 +4,7 @@
 
 #include "Actors.cpp"
 
-#define ACTOR_DIE 0
+//#define ACTOR_DIE 0
 
 #define ACTION_EAT 1
 #define ACTION_MOVE_UP 2
@@ -34,6 +34,9 @@ class GridWorld{
 		vector< Rabbit*> rabbitList;
 		vector< Wolf*> wolfList;
 
+		//auxiliary variable for probabilistic world
+		float probability; //[0.0 to 1.0]
+
 	public:
 		GridWorld(int n){
 			size = n;
@@ -43,6 +46,8 @@ class GridWorld{
 
 			v_rabbit = 3;
 			v_wolf = 3;
+
+			probability = 70;
 
 			inicializeWorld();
 		}
@@ -118,8 +123,6 @@ class GridWorld{
 				
 				print();
 			}
-
-
 		}
 
 		void randomBehaviour(Actor* actor){
@@ -168,8 +171,104 @@ class GridWorld{
 			}
 		}
 
-		void probabilisticBehaviour(){
+		void probabilisticWorld(int iterations){
+			int totalRabbits = rabbitList.size();
+			int totalWolves = wolfList.size();
+			for (int i = 0; i < iterations; ++i){
+				for (int i = 0; i < totalRabbits; ++i){
+					if( rabbitList[i]->iterationsWithoutEating(v_rabbit)){
+						removeActor(rabbitList[i], rabbitList[i]->getX(), rabbitList[i]->getY());
+						totalRabbits--;
+					}
+					else 
+						probabilisticBehaviour(rabbitList[i]);
+				}
+				for (int i = 0; i < totalWolves; ++i){
+					if( wolfList[i]->iterationsWithoutEating(v_rabbit)){
+						removeActor(wolfList[i], wolfList[i]->getX(), wolfList[i]->getY());
+						totalWolves--;
+					}
+					else 
+						probabilisticBehaviour(wolfList[i]);
+				}
+				
+				if( i%t_grass==0)
+					breadActors(grassList[ i%grassList.size() ]);
 
+				if( i%t_rabbit==0)
+					breadActors(rabbitList[ i%rabbitList.size() ]);
+				
+				if( i%t_wolf==0)
+					breadActors(wolfList[ i%wolfList.size() ]);
+				
+				print();
+			}
+
+		}
+
+		void probabilisticBehaviour(Actor* actor){
+			int action;
+			int probability_gen = getRandomNumber(0,100);
+
+			vector<int> possibleDirsTargets; 
+
+			switch(actor->getType()){
+				case IS_RABBIT:	findGrassAround( actor->getX(), actor->getY(), possibleDirsTargets); break;
+				case IS_WOLF:	findRabbitAround( actor->getX(), actor->getY(), possibleDirsTargets); break;
+			}
+
+			if( probability_gen < this->probability){
+				switch(getRandomNumber(2,5)){ //switch directions
+					case ACTION_MOVE_UP : 		actor->moveUp(size); break;
+					case ACTION_MOVE_DOWN :		actor->moveDown(size); break;
+					case ACTION_MOVE_RIGHT :	actor->moveRight(size); break;
+					case ACTION_MOVE_LEFT :		actor->moveLeft(size); break;
+				}
+				action = ACTION_EAT;
+			}
+			else
+				action = getRandomNumber(1,6);
+
+			//cout <<"[DEBUG] action value: "<< action << endl;
+			switch(action){
+				case ACTION_EAT : {
+					//cout << " ACTION_EAT "<< actor->getType() << endl;
+					if ( actor->getType() == IS_WOLF ){
+						Rabbit* target = findRabbit(actor->getX(), actor->getY() );
+						if( target!= nullptr){
+							actor->eat(target);
+							removeActor(target, target->getX(), target->getY());
+						}
+					}else{
+						if ( actor->getType() == IS_RABBIT ){
+							//cout << "[DEBUG] I have been recogniced as a Rabbit" << endl;
+							Grass* target = findGrass(actor->getX(), actor->getY() );
+							if( target!= nullptr){
+								actor->eat(target);
+								removeActor(target, target->getX(), target->getY());
+							}
+
+						}
+					}
+					break;
+				}
+				case ACTION_MOVE_UP :
+					actor->moveUp(size);
+					break;
+				case ACTION_MOVE_DOWN :
+					actor->moveDown(size);
+					break;
+				case ACTION_MOVE_RIGHT :
+					actor->moveRight(size);
+					break;
+				case ACTION_MOVE_LEFT :
+					actor->moveLeft(size);
+					break;
+				//case ACTION_BREED : { break; }
+				case ACTION_DO_NOTHING :
+					actor->doNothing();
+					break;
+			}
 		}
 
 		void breadActors(Actor* actor){
@@ -262,6 +361,102 @@ class GridWorld{
 					return (Grass*) world[x][y][i];
 			}
 			return target;
+		}
+		/*
+		void findGrassAround(int x, int y, vector<Actor*>& aux_grass){
+			Grass* grass = nullptr;
+			if(x-1 >=0 and x-1 <size){
+				grass = findGrass(x-1,y);
+				if(grass!=nullptr)
+					aux_grass.push_back( grass );
+			}
+			if( y+1 >=0 and y+1 <size )	{
+				grass = findGrass(x,y+1);
+				if(grass!=nullptr)
+					aux_grass.push_back( grass );
+			}
+			if( x+1 >=0 and x+1 <size )	{
+				grass = findGrass(x+1,y);
+				if(grass!=nullptr)
+					aux_grass.push_back( grass );
+			}
+			if( y-1 >=0 and y-1 <size ){
+				grass = findGrass(x,y-1);
+				if(grass!=nullptr)
+					aux_grass.push_back( grass );
+			}
+		}
+
+		void findRabbitAround(int x, int y, vector<Actor*>& aux_rabbit){
+			Rabbit* rabbit = nullptr;
+			if(x-1 >=0 and x-1 <size){
+				rabbit = findRabbit(x-1,y);
+				if(rabbit!=nullptr)
+					aux_rabbit.push_back( rabbit );
+			}
+			if( y+1 >=0 and y+1 <size )	{
+				rabbit = findRabbit(x,y+1);
+				if(rabbit!=nullptr)
+					aux_rabbit.push_back( rabbit );
+			}
+			if( x+1 >=0 and x+1 <size )	{
+				rabbit = findRabbit(x+1,y);
+				if(rabbit!=nullptr)
+					aux_rabbit.push_back( rabbit );
+			}
+			if( y-1 >=0 and y-1 <size ){
+				rabbit = findRabbit(x,y-1);
+				if(rabbit!=nullptr)
+					aux_rabbit.push_back( rabbit );
+			}
+		}
+		*/
+		void findGrassAround(int x, int y, vector<int>& aux_grass){
+			Grass* grass = nullptr;
+			if(x-1 >=0 and x-1 <size){
+				grass = findGrass(x-1,y);
+				if(grass!=nullptr)
+					aux_grass.push_back( ACTION_MOVE_LEFT );
+			}
+			if( y+1 >=0 and y+1 <size )	{
+				grass = findGrass(x,y+1);
+				if(grass!=nullptr)
+					aux_grass.push_back( ACTION_MOVE_UP );
+			}
+			if( x+1 >=0 and x+1 <size )	{
+				grass = findGrass(x+1,y);
+				if(grass!=nullptr)
+					aux_grass.push_back( ACTION_MOVE_RIGHT );
+			}
+			if( y-1 >=0 and y-1 <size ){
+				grass = findGrass(x,y-1);
+				if(grass!=nullptr)
+					aux_grass.push_back( ACTION_MOVE_DOWN );
+			}
+		}
+
+		void findRabbitAround(int x, int y, vector<int>& aux_rabbit){
+			Rabbit* rabbit = nullptr;
+			if(x-1 >=0 and x-1 <size){
+				rabbit = findRabbit(x-1,y);
+				if(rabbit!=nullptr)
+					aux_rabbit.push_back( ACTION_MOVE_LEFT );
+			}
+			if( y+1 >=0 and y+1 <size )	{
+				rabbit = findRabbit(x,y+1);
+				if(rabbit!=nullptr)
+					aux_rabbit.push_back( ACTION_MOVE_UP );
+			}
+			if( x+1 >=0 and x+1 <size )	{
+				rabbit = findRabbit(x+1,y);
+				if(rabbit!=nullptr)
+					aux_rabbit.push_back( ACTION_MOVE_RIGHT );
+			}
+			if( y-1 >=0 and y-1 <size ){
+				rabbit = findRabbit(x,y-1);
+				if(rabbit!=nullptr)
+					aux_rabbit.push_back( ACTION_MOVE_DOWN );
+			}
 		}
 
 		void removeActor(Actor* actor, int x, int y){
