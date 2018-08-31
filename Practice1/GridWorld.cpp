@@ -35,21 +35,52 @@ class GridWorld{
 		vector< Wolf*> wolfList;
 
 		//auxiliary variable for probabilistic world
-		float probability; //[0.0 to 1.0]
+		float probability; //[0 to 100] %
+
+		// variables for stats
+		int deadRabbits;
+		int deadWolves;
+		int deadGrasses;
+		int totalRabbits;
+		int totalWolves;
+		int totalGrasses;
 
 	public:
 		GridWorld(int n){
 			size = n;
-			t_grass = 5;
-			t_rabbit = 5;
-			t_wolf = 5;
+			t_grass = 3; 	// este parametro es cambiado en main.cpp
+			t_rabbit = 3;	// este parametro es cambiado en main.cpp
+			t_wolf = 3;	// este parametro es cambiado en main.cpp
 
-			v_rabbit = 3;
-			v_wolf = 3;
+			v_rabbit = 5;	// este parametro es cambiado en main.cpp
+			v_wolf = 5;	// este parametro es cambiado en main.cpp
+	
+			probability = 70; // este parametro es cambiado en main.cpp
 
-			probability = 70;
+			//inicialize variables for stats
+			deadGrasses =  0;
+			deadWolves = 0;
+			deadRabbits = 0;
+			totalGrasses = 1; //this will be created in inicializeWorld
+			totalRabbits = 1; //this will be created in inicializeWorld
+			totalWolves = 1; //this will be created in inicializeWorld
 
 			inicializeWorld();
+		}
+
+		void setProbability(int prob){
+			this->probability = prob;
+		}
+
+		void setBirthRate(int rate){
+			t_grass = rate;
+			t_rabbit = rate;
+			t_wolf = rate;
+		}
+
+		void setMortalityRate(int rate){
+			v_rabbit = rate;
+			v_wolf = rate;
 		}
 
 		void saveActor(Actor* actor,int x, int y, int type){
@@ -69,11 +100,20 @@ class GridWorld{
 				world[i].resize(size);
 			}
 
+			//TODO: iniciliaze in random positions
+			/*
 			Grass* g = new Grass(1,1);
 			saveActor(g,1,1, IS_GRASS );
 			saveActor(new Rabbit(2,2),2,2, IS_RABBIT );
 			saveActor(new Wolf(3,3),3,3, IS_WOLF );
-
+			*/
+			Grass* g = new Grass(getRandomNumber(0,size),getRandomNumber(0,size));
+			Rabbit* r = new Rabbit(getRandomNumber(0,size),getRandomNumber(0,size));
+			Wolf* w = new Wolf(getRandomNumber(0,size),getRandomNumber(0,size));
+			
+			saveActor(g, g->getX(), g->getY(), IS_GRASS );
+			saveActor(r, r->getX(), r->getY(), IS_RABBIT );
+			saveActor(w, w->getX(), w->getY(), IS_WOLF );
 		}
 
 		void testFunction(){
@@ -92,24 +132,25 @@ class GridWorld{
 		}
 
 		void randomWorld(int iterations){
-			int totalRabbits = rabbitList.size();
-			int totalWolves = wolfList.size();
+			
 			for (int i = 0; i < iterations; ++i){
-				for (int i = 0; i < totalRabbits; ++i){
-					if( rabbitList[i]->iterationsWithoutEating(v_rabbit)){
-						removeActor(rabbitList[i], rabbitList[i]->getX(), rabbitList[i]->getY());
+				for (int r = 0; r < totalRabbits; ++r){
+					if( rabbitList[r]->iterationsWithoutEating(v_rabbit)){
+						removeActor(rabbitList[r], rabbitList[r]->getX(), rabbitList[r]->getY());
 						totalRabbits--;
+						deadRabbits++; // [STATS]
 					}
 					else 
-						randomBehaviour(rabbitList[i]);
+						randomBehaviour(rabbitList[r]);
 				}
-				for (int i = 0; i < totalWolves; ++i){
-					if( wolfList[i]->iterationsWithoutEating(v_rabbit)){
-						removeActor(wolfList[i], wolfList[i]->getX(), wolfList[i]->getY());
+				for (int w = 0; w < totalWolves; ++w){
+					if( wolfList[w]->iterationsWithoutEating(v_wolf)){
+						removeActor(wolfList[w], wolfList[w]->getX(), wolfList[w]->getY());
 						totalWolves--;
+						deadWolves++; // [STATS]
 					}
 					else 
-						randomBehaviour(wolfList[i]);
+						randomBehaviour(wolfList[w]);
 				}
 				
 				if( i%t_grass==0)
@@ -121,7 +162,8 @@ class GridWorld{
 				if( i%t_wolf==0)
 					breadActors(wolfList[ i%wolfList.size() ]);
 				
-				print();
+				//cout << "---------------------- ITERATION"<< i+1 << "----------------------"<<endl;
+				//print();
 			}
 		}
 
@@ -138,6 +180,8 @@ class GridWorld{
 						if( target!= nullptr){
 							actor->eat(target);
 							removeActor(target, target->getX(), target->getY());
+							totalRabbits--;
+							deadRabbits++; // [STATS]
 						}
 					}else{
 						if ( actor->getType() == IS_RABBIT ){
@@ -146,8 +190,9 @@ class GridWorld{
 							if( target!= nullptr){
 								actor->eat(target);
 								removeActor(target, target->getX(), target->getY());
+								totalGrasses--;
+								deadGrasses++; // [STATS]
 							}
-
 						}
 					}
 					break;
@@ -172,27 +217,34 @@ class GridWorld{
 		}
 
 		void probabilisticWorld(int iterations){
-			int totalRabbits = rabbitList.size();
-			int totalWolves = wolfList.size();
+			
 			for (int i = 0; i < iterations; ++i){
-				for (int i = 0; i < totalRabbits; ++i){
-					if( rabbitList[i]->iterationsWithoutEating(v_rabbit)){
-						removeActor(rabbitList[i], rabbitList[i]->getX(), rabbitList[i]->getY());
+				//cout << "[DEBUG] countRabbits: " << totalRabbits << endl;
+				for (int r = 0; r < totalRabbits; ++r){
+					if( rabbitList[r]->iterationsWithoutEating(v_rabbit)){
+						removeActor(rabbitList[r], rabbitList[r]->getX(), rabbitList[r]->getY());
 						totalRabbits--;
+						deadRabbits++; // [STATS]
+						//cout << "[DEBUG] RABBIT: Eliminado por no comer" << endl;
 					}
-					else 
-						probabilisticBehaviour(rabbitList[i]);
+					else{ 
+						//cout << "[DEBUG] RABBIT: REALIZAR ALGO PROBABILISTICO" << endl;
+						probabilisticBehaviour(rabbitList[r]);
+					}
 				}
-				for (int i = 0; i < totalWolves; ++i){
-					if( wolfList[i]->iterationsWithoutEating(v_rabbit)){
-						removeActor(wolfList[i], wolfList[i]->getX(), wolfList[i]->getY());
+				for (int w = 0; w < totalWolves; ++w){
+					if( wolfList[w]->iterationsWithoutEating(v_wolf)){
+						removeActor(wolfList[w], wolfList[w]->getX(), wolfList[w]->getY());
 						totalWolves--;
+						deadWolves++; // [STATS]
+						//cout << "[DEBUG] LOBO: Eliminado por no comer" << endl;
 					}
-					else 
-						probabilisticBehaviour(wolfList[i]);
+					else {
+						probabilisticBehaviour(wolfList[w]);
+					}
 				}
 				
-				if( i%t_grass==0)
+				if( i%t_grass==0) 
 					breadActors(grassList[ i%grassList.size() ]);
 
 				if( i%t_rabbit==0)
@@ -201,9 +253,9 @@ class GridWorld{
 				if( i%t_wolf==0)
 					breadActors(wolfList[ i%wolfList.size() ]);
 				
-				print();
+				//cout << "---------------------- ITERATION"<< i+1 << "----------------------"<<endl;
+				//print();
 			}
-
 		}
 
 		void probabilisticBehaviour(Actor* actor){
@@ -217,7 +269,7 @@ class GridWorld{
 				case IS_WOLF:	findRabbitAround( actor->getX(), actor->getY(), possibleDirsTargets); break;
 			}
 
-			if( probability_gen < this->probability){
+			if( probability_gen <= this->probability){
 				switch(getRandomNumber(2,5)){ //switch directions
 					case ACTION_MOVE_UP : 		actor->moveUp(size); break;
 					case ACTION_MOVE_DOWN :		actor->moveDown(size); break;
@@ -229,7 +281,7 @@ class GridWorld{
 			else
 				action = getRandomNumber(1,6);
 
-			//cout <<"[DEBUG] action value: "<< action << endl;
+//			cout <<"[DEBUG] action value: "<< action << "	number: "<< probability_gen << endl; 
 			switch(action){
 				case ACTION_EAT : {
 					//cout << " ACTION_EAT "<< actor->getType() << endl;
@@ -238,16 +290,18 @@ class GridWorld{
 						if( target!= nullptr){
 							actor->eat(target);
 							removeActor(target, target->getX(), target->getY());
+							totalRabbits--;
+							deadRabbits++; // [STATS]
 						}
 					}else{
 						if ( actor->getType() == IS_RABBIT ){
-							//cout << "[DEBUG] I have been recogniced as a Rabbit" << endl;
 							Grass* target = findGrass(actor->getX(), actor->getY() );
 							if( target!= nullptr){
 								actor->eat(target);
 								removeActor(target, target->getX(), target->getY());
+								totalGrasses--;
+								deadGrasses++; // [STATS]
 							}
-
 						}
 					}
 					break;
@@ -281,20 +335,23 @@ class GridWorld{
 
 			number = min( x_possible.size(), number);
 			//cout << "[DEBUG] Number of Children: " << number << endl;
-
 			for (int i = 0; i < number; ++i){
 				Actor* new_actor;
 				if(actor->getType()==IS_GRASS){
 					new_actor = new Grass( x_possible[i], y_possible[i]);
 					saveActor( new_actor, x_possible[i], y_possible[i], IS_GRASS);
+					totalGrasses++; //[STATS]
 				}
 				if(actor->getType()==IS_RABBIT){
+					//cout << "[DEBUG] Number of Children: " << number << endl;
 					new_actor = new Rabbit( x_possible[i], y_possible[i]);
 					saveActor( new_actor, x_possible[i], y_possible[i], IS_RABBIT);
+					totalRabbits++; //[STATS]
 				}
 				if(actor->getType()==IS_WOLF){
 					new_actor = new Wolf( x_possible[i], y_possible[i]);
 					saveActor( new_actor, x_possible[i], y_possible[i], IS_WOLF);
+					totalWolves++; //[STATS]
 				}
 
 			}			
@@ -320,7 +377,7 @@ class GridWorld{
 		}
 
 		void print(){
-			cout <<"\n ----------------------------------------------------------- \n";
+			//cout <<"\n ----------------------------------------------------------- \n";
 			for (int i = 0; i < size; ++i){
 				for (int j = 0; j < size; ++j){
 					if(world[i][j].size()>0){
@@ -362,55 +419,7 @@ class GridWorld{
 			}
 			return target;
 		}
-		/*
-		void findGrassAround(int x, int y, vector<Actor*>& aux_grass){
-			Grass* grass = nullptr;
-			if(x-1 >=0 and x-1 <size){
-				grass = findGrass(x-1,y);
-				if(grass!=nullptr)
-					aux_grass.push_back( grass );
-			}
-			if( y+1 >=0 and y+1 <size )	{
-				grass = findGrass(x,y+1);
-				if(grass!=nullptr)
-					aux_grass.push_back( grass );
-			}
-			if( x+1 >=0 and x+1 <size )	{
-				grass = findGrass(x+1,y);
-				if(grass!=nullptr)
-					aux_grass.push_back( grass );
-			}
-			if( y-1 >=0 and y-1 <size ){
-				grass = findGrass(x,y-1);
-				if(grass!=nullptr)
-					aux_grass.push_back( grass );
-			}
-		}
-
-		void findRabbitAround(int x, int y, vector<Actor*>& aux_rabbit){
-			Rabbit* rabbit = nullptr;
-			if(x-1 >=0 and x-1 <size){
-				rabbit = findRabbit(x-1,y);
-				if(rabbit!=nullptr)
-					aux_rabbit.push_back( rabbit );
-			}
-			if( y+1 >=0 and y+1 <size )	{
-				rabbit = findRabbit(x,y+1);
-				if(rabbit!=nullptr)
-					aux_rabbit.push_back( rabbit );
-			}
-			if( x+1 >=0 and x+1 <size )	{
-				rabbit = findRabbit(x+1,y);
-				if(rabbit!=nullptr)
-					aux_rabbit.push_back( rabbit );
-			}
-			if( y-1 >=0 and y-1 <size ){
-				rabbit = findRabbit(x,y-1);
-				if(rabbit!=nullptr)
-					aux_rabbit.push_back( rabbit );
-			}
-		}
-		*/
+	
 		void findGrassAround(int x, int y, vector<int>& aux_grass){
 			Grass* grass = nullptr;
 			if(x-1 >=0 and x-1 <size){
@@ -467,21 +476,21 @@ class GridWorld{
 
 			switch(actor->getType()){
 				case IS_GRASS: {
-					for (int i = 0; i < grassList.size(); ++i){
-						if(grassList[i] == (Grass*) actor)
-							grassList.erase(grassList.begin() + i);
+					for (int g = 0; g < grassList.size(); ++g){
+						if(grassList[g] == (Grass*) actor)
+							grassList.erase(grassList.begin() + g);
 					}
 				}
 				case IS_RABBIT: {
-					for (int i = 0; i < rabbitList.size(); ++i){
-						if(rabbitList[i] == (Rabbit*) actor)
-							rabbitList.erase( rabbitList.begin() + i);
+					for (int r = 0; r < rabbitList.size(); ++r){
+						if(rabbitList[r] == (Rabbit*) actor)
+							rabbitList.erase( rabbitList.begin() + r);
 					}
 				}
 				case IS_WOLF: {
-					for (int i = 0; i < wolfList.size(); ++i){
-						if(wolfList[i] == (Wolf*) actor)
-							wolfList.erase(wolfList.begin() + i);
+					for (int w = 0; w < wolfList.size(); ++w){
+						if(wolfList[w] == (Wolf*) actor)
+							wolfList.erase(wolfList.begin() + w);
 					}
 				}
 			}
@@ -489,5 +498,56 @@ class GridWorld{
 
 		int min(int a, int b){
 			return a <= b? a : b;
+		}
+
+		void printAux(){
+			cout << "**********************************************" << endl;
+			cout << "grasses: " << grassList.size() << endl;
+			cout << "rabbits: " << rabbitList.size() << endl;
+			cout << "wolves : " << wolfList.size() << endl;
+			cout << "**********************************************" << endl;
+		}
+
+		void getStats(vector< vector<float> >& results){
+			vector<float> grassStats;
+			vector<float> rabbitStats;
+			vector<float> wolfStats;
+
+			grassStats.push_back(abs(totalGrasses) + abs(deadGrasses));
+			grassStats.push_back((float) abs(totalGrasses)*100.0f /(abs(totalGrasses) + abs(deadGrasses)) );
+			grassStats.push_back((float) abs(deadGrasses)*100.0f /(abs(totalGrasses) + abs(deadGrasses)) );
+
+			rabbitStats.push_back(abs(totalRabbits) + abs(deadRabbits));
+			rabbitStats.push_back((float) abs(totalRabbits)*100.0f/(abs(totalRabbits) + abs(deadRabbits)) );
+			rabbitStats.push_back((float) abs(deadRabbits)*100.0f/(abs(totalRabbits) + abs(deadRabbits)) );
+			
+			wolfStats.push_back(abs(totalWolves) + abs(deadWolves));
+			wolfStats.push_back((float) abs(totalWolves)*100.0f/(abs(totalWolves) + abs(deadWolves)) );
+			wolfStats.push_back((float) abs(deadWolves)*100.0f/(abs(totalWolves) + abs(deadWolves)) );
+
+			results.push_back(grassStats);
+			results.push_back(rabbitStats);
+			results.push_back(wolfStats);
+		}
+
+		void printStats(){
+
+			cout << "\t--------------- Stats ---------------"<< endl;
+
+			cout << "* PASTOS:"<< endl;
+			cout << "	total : 	" << abs(totalGrasses) + abs(deadGrasses)<< endl;
+			cout << "	alive : 	"<< abs(totalGrasses) << " " << (float) totalGrasses*100 /(totalGrasses + deadGrasses) << endl;
+			cout << "	dead: 		" << abs(deadGrasses) << " "<< (float) deadGrasses*100 /(totalGrasses + deadGrasses) <<endl;
+
+			cout << "* CONEJOS:"<< endl;
+			cout << "	total : 	" << abs(totalRabbits) + abs(deadRabbits) << endl;
+			cout << "	alive : 	"<< abs(totalRabbits) << endl;
+			cout << "	dead: 		" << abs(deadRabbits) << endl;
+
+			cout << "* LOBOS:"<< endl;
+			cout << "	total : 	" << abs(totalWolves) + abs(deadWolves) << endl;
+			cout << "	alive : 	"<< abs(totalWolves) << endl;
+			cout << "	dead: 		" << abs(deadWolves) << endl;
+
 		}
 };

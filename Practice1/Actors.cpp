@@ -15,6 +15,7 @@ class Actor{
 			xpos = x;
 			ypos = y;
 			type = _type;
+			iter_lazy = 0;
 		}
 
 		int getX(){ return xpos; }
@@ -22,7 +23,7 @@ class Actor{
 
 		bool iterationsWithoutEating(int max_iter_without_eating){
 			iter_lazy += 1;
-			if(iter_lazy> max_iter_without_eating){
+			if(iter_lazy>= max_iter_without_eating){
 				iter_lazy = 0;
 				return true;
 			}
@@ -42,7 +43,6 @@ class Actor{
 
 		virtual void doNothing(){}
 
-		//TODO: correct this validations
 		virtual void moveUp(int maxsize){
 			if ( ypos+1 < maxsize)
 				ypos += 1 ;
@@ -71,7 +71,7 @@ class Grass : public Actor{
 		Grass(int x, int y) : Actor(x,y, IS_GRASS ){}
 
 		void dead(){
-			cout << "[GRASS] He muerto" << endl;
+			//cout << "[GRASS] He muerto" << endl;
 		}
 
 		Actor* clone(){
@@ -97,10 +97,8 @@ class Rabbit: public Actor{
 	public:
 		Rabbit(int x, int y) : Actor(x,y, IS_RABBIT){}
 
-		//void eat(Grass* target){}
-
 		void dead(){
-			cout << "[RABBIT] He muerto" << endl;
+			//cout << "[RABBIT] He muerto" << endl;
 		}
 
 		Actor* clone(){
@@ -118,10 +116,8 @@ class Wolf : public Actor{
 	public:
 		Wolf(int x, int y) : Actor(x,y, IS_WOLF){}
 
-		//void eat(Rabbit* target){}
-
 		void dead(){
-			cout << "[WOLF] He muerto" << endl;
+			//cout << "[WOLF] He muerto" << endl;
 		}
 
 		Actor* clone(){
